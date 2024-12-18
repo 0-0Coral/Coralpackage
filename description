@@ -1,9 +1,9 @@
-Package: ducciopack
+Package: Coralpackage
 Type: Package
 Title: How to make a package
 Version: 0.1.0
-Author: Duccio Rocchini
-Maintainer: The package maintainer <ducciorocchini@gmail.com>
+Author: Coral
+Maintainer: The package maintainer <luoweishancoral@outlook.com>
 Description: Manipulate and share raster images in R.
 Encoding: UTF-8
 Language: en-GB
