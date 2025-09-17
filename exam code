@@ -1,0 +1,138 @@
+# Load the terra package for raster data processing
+library(terra)
+
+# Set the data directory path
+data_dir <- "C:/Users/罗伟珊/Documents/R/mangrove_data"
+
+# 2018
+# Construct file paths for the 2018 bands
+path_b04_2018 <- file.path(data_dir, "DZ_2018_B04.tif")
+path_b08_2018 <- file.path(data_dir, "DZ_2018_B08.tif")
+# Read the B04 (Red) and B08 (NIR) bands into R
+b04_2018 <- rast(path_b04_2018)
+b08_2018 <- rast(path_b08_2018)
+
+# 2020
+path_b04_2020 <- file.path(data_dir, "DZ_2020_B04.tif")
+path_b08_2020 <- file.path(data_dir, "DZ_2020_B08.tif")
+b04_2020 <- rast(path_b04_2020)
+b08_2020 <- rast(path_b08_2020)
+
+# 2022
+path_b04_2022 <- file.path(data_dir, "DZ_2022_B04.tif")
+path_b08_2022 <- file.path(data_dir, "DZ_2022_B08.tif")
+b04_2022 <- rast(path_b04_2022)
+b08_2022 <- rast(path_b08_2022)
+
+# 2024
+path_b04_2024 <- file.path(data_dir, "DZ_2024_B04.tif")
+path_b08_2024 <- file.path(data_dir, "DZ_2024_B08.tif")
+b04_2024 <- rast(path_b04_2024)
+b08_2024 <- rast(path_b08_2024)
+
+# 2018 NDVI Calculation
+# DVI: NIR - RED
+dvi_2018 <- b08_2018 - b04_2018
+# Calculate NDVI
+ndvi_2018 <- dvi_2018 / (b08_2018 + b04_2018)
+
+# 2020 NDVI Calculation
+dvi_2020 <- b08_2020 - b04_2020
+ndvi_2020 <- dvi_2020 / (b08_2020 + b04_2020)
+
+# 2022 NDVI Calculation
+dvi_2022 <- b08_2022 - b04_2022
+ndvi_2022 <- dvi_2022 / (b08_2022 + b04_2022)
+
+# 2024 NDVI Calculation
+dvi_2024 <- b08_2024 - b04_2024
+ndvi_2024 <- dvi_2024 / (b08_2024 + b04_2024)
+
+# Create a 2x2 plotting layout
+par(mfrow = c(2, 2))
+
+# Plot each year's NDVI image
+plot(ndvi_2018, main = "NDVI 2018")
+plot(ndvi_2020, main = "NDVI 2020")
+plot(ndvi_2022, main = "NDVI 2022")
+plot(ndvi_2024, main = "NDVI 2024")
+
+# Set the NDVI threshold
+thr <- 0.50
+
+# Create Masks (TRUE/FALSE)
+# Pixels with NDVI >= threshold become TRUE
+mask18 <- ndvi_2018 >= thr
+mask20 <- ndvi_2020 >= thr
+mask22 <- ndvi_2022 >= thr
+mask24 <- ndvi_2024 >= thr
+
+# Get Pixel Area
+# Get the x/y resolution of the raster
+res_xy <- res(ndvi_2018)
+# Calculate the area of a single pixel
+pix_m2 <- res_xy[1] * res_xy[2]
+
+# Calculate Area for All Years
+# 2018
+vals18 <- values(mask18)
+n_true18 <- sum(vals18, na.rm = TRUE)
+area18_ha <- n_true18 * pix_m2 / 10000
+
+# 2020
+vals20 <- values(mask20)
+n_true20 <- sum(vals20, na.rm = TRUE)
+area20_ha <- n_true20 * pix_m2 / 10000
+
+# 2022
+vals22 <- values(mask22)
+n_true22 <- sum(vals22, na.rm = TRUE)
+area22_ha <- n_true22 * pix_m2 / 10000
+
+# 2024
+vals24 <- values(mask24)
+n_true24 <- sum(vals24, na.rm = TRUE)
+area24_ha <- n_true24 * pix_m2 / 10000
+
+# Create a data frame to store the results
+years <- c(2018, 2020, 2022, 2024)
+areas_ha <- c(area18_ha, area20_ha, area22_ha, area24_ha)
+results_df <- data.frame(Year = years, Area_ha = areas_ha)
+
+# Print the data frame
+print(results_df)
+
+# Change Map Visualization (2018 vs. 2024)
+
+# Combine the two masks to create a change code
+# mask18*1 converts TRUE/FALSE to 1/0
+# mask24*2 converts TRUE/FALSE to 2/0
+# The sum gives four classes: 0 (Other), 1 (Loss), 2 (Gain), 3 (Stable)
+code_18_24 <- mask18 * 1 + mask24 * 2
+
+# Choose a custom color palette
+my_colors <- c("#F0F0F0", "#D95F02", "#1B9E77", "#6A3D9A")
+
+# Plot the change map with specified colors and breaks
+plot(code_18_24,
+     col= my_colors,
+     breaks= c(-Inf, 0.5, 1.5, 2.5, Inf),
+     legend= FALSE, # Do not plot the default legend
+     main= paste0("Change 2018→2024 (NDVI ≥ ", thr, ")"))
+
+# Add a custom legend
+legend("topright",
+       bty="n",
+       fill= my_colors,
+       legend= c("Other","Loss","Gain","Stable"))
+
+# ---Regression Analysis ---
+ndvi_data <- data.frame(
+  Year= c(2018, 2020, 2022, 2024),
+  Area_ha= c(104898, 77528, 109425, 63741))
+
+# Run a linear regression model
+lm_model <- lm(Area_ha ~ Year, data = ndvi_data)
+
+# Print the summary of the model
+summary(lm_model)
